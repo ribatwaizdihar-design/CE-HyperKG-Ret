@@ -1,0 +1,10 @@
+hardware:
+  gpu: NVIDIA RTX 3060
+  vram_gb: 12
+  cpu: Intel Core i7
+  system_memory_gb: 32
+software:
+  cuda: '11.8'
+  pytorch: '2.1'
+mixed_precision: true
+single_gpu_reproducibility: true

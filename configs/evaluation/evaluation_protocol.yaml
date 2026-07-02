@@ -1,0 +1,31 @@
+protocol: leakage_controlled_cui_retrieval_evaluation
+train_val_test_split_before_all_semantic_resources: true
+train_only_resources:
+- CUI vocabulary
+- pairwise CUI graph
+- CUI hypergraph
+- hard-negative mining pool
+validation_only_uses:
+- CUI threshold selection after validation ranking
+- fusion rule tuning after validation ranking
+- checkpoint selection
+test_ground_truth_cuis: used_only_after_final_ranked_lists_are_fixed
+metrics_at_k:
+- CUI@5
+- Precision@5
+- Recall@5
+- mAP@5
+- MRR@5
+- NDCG@5
+- MeanJaccard@5
+k_values:
+- 5
+- 10
+- 50
+bootstrap_resamples: 10000
+internal_dataset: ROCOv2
+external_datasets:
+- ROCO
+- MedICaT
+generic_filtering: remove_or_downweight_overly_common_modality_or_anatomy_only_cuis
+disease_finding_only_setting: true

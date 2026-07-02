@@ -1,0 +1,118 @@
+experiment:
+  name: 04_clip_baseline
+  notebook: ../notebooks/04_clip_baseline.ipynb
+  task: image_only_medical_image_retrieval
+paths:
+  data_root: ${DATA_ROOT:../data/roco_v2}
+  output_root: ${OUTPUT_ROOT:../results}
+  output_dir: ${OUTPUT_DIR:../results/clip_roco_v2_image_only}
+  model_cache_dir: ${MODEL_CACHE_DIR:../models}
+dataset:
+  name: ROCOv2
+  data_root: ${DATA_ROOT:../data/roco_v2}
+  splits:
+  - train
+  - valid
+  - test
+  expected_images:
+    train: 60163
+    valid: 9945
+    test: 9972
+    total: 80080
+  caption_files:
+    train: train_captions.csv
+    valid: valid_captions.csv
+    test: test_captions.csv
+  concept_files:
+    train: train_concepts.csv
+    valid: valid_concepts.csv
+    test: test_concepts.csv
+  manual_concept_files:
+    train: train_concepts_manual.csv
+    valid: valid_concepts_manual.csv
+    test: test_concepts_manual.csv
+  image_extensions:
+  - .jpg
+  - .jpeg
+  - .png
+  - .bmp
+  - .webp
+  - .tif
+  - .tiff
+  leakage_control:
+    split_before_vocabulary: true
+    vocabulary_source: train_only
+    pairwise_graph_source: train_only
+    hypergraph_source: train_only
+    hard_negative_pool_source: train_only
+    validation_ground_truth_cuis: used_only_after_validation_ranking_for_threshold_checkpoint_and_fusion_selection
+    test_ground_truth_cuis: used_only_after_final_ranked_lists_are_fixed_for_metric_computation
+    no_validation_or_test_ground_truth_cuis_during_ranking: true
+  baseline_evaluation_retained_labels: 1939
+  baseline_evaluation_min_cui_freq: 5
+  baseline_evaluation_max_vocabulary_cap: 2048
+  min_cui_freq: 5
+  max_vocabulary_cap: 2048
+model:
+  tag: clip
+  display_name: CLIP
+  family: huggingface_clip
+  architecture_or_model_id: openai/clip-vit-base-patch32
+  image_size: 224
+  pretrained: true
+  embedding_normalization: l2
+training:
+  random_seeds:
+  - 42
+  - 123
+  - 2025
+  reporting: mean_and_standard_deviation_at_k5
+  batch_size: 64
+  num_workers: 0
+  mixed_precision: true
+  train_encoder: false
+  mode: feature_extraction_for_image_only_retrieval
+retrieval:
+  use_visual_similarity: true
+  use_cui_prediction_for_ranking: false
+  use_pairwise_graph: false
+  use_hypergraph: false
+  use_counterfactual_negatives: false
+  use_uncertainty_fusion: false
+  ranking_score: cosine_similarity_over_image_embeddings_only
+  candidate_cuis_during_ranking: not_used
+evaluation:
+  query_split: test
+  retrieval_pool: test
+  same_split_self_exclude: true
+  k_values:
+  - 5
+  - 10
+  - 50
+  primary_k: 5
+  curve_k_max: 50
+  metrics:
+  - CUI@K
+  - Precision@K
+  - Recall@K
+  - mAP@K
+  - MRR@K
+  - NDCG@K
+  - MeanJaccard@K
+  relevance_rule: relevant_if_query_and_candidate_share_at_least_one_retained_CUI
+  ndcg_gain: graded_cui_jaccard_overlap
+  mean_jaccard: average_cui_set_jaccard_over_top_k
+  full_cui_evaluation: true
+  generic_filtered_evaluation: true
+  frequency_weighted_evaluation: true
+  disease_finding_only_evaluation: true
+  test_ground_truth_cuis_used_only_after_ranking: true
+  baseline_ranking: cosine_similarity_over_image_embeddings_only
+expected_k5:
+  CUI@5: 0.4393 ± 0.0083
+  Precision@5: 0.4475 ± 0.0076
+  Recall@5: 0.0025 ± 0.0088
+  mAP@5: 0.4257 ± 0.0043
+  MRR@5: 0.4307 ± 0.0045
+  NDCG@5: 0.4412 ± 0.0041
+  Jaccard@5: 0.3134 ± 0.0086

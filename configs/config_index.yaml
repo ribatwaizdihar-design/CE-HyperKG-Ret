@@ -1,0 +1,35 @@
+config_folder: configs
+config_version: final
+matches_src_folder_commands: true
+baselines:
+- baselines/01_resnet50_baseline.yaml
+- baselines/02_simclr_baseline.yaml
+- baselines/03_moco_v2_baseline.yaml
+- baselines/04_clip_baseline.yaml
+- baselines/05_pubmedclip_baseline.yaml
+- baselines/06_dinov2_baseline.yaml
+- baselines/07_rad_dino_baseline.yaml
+- baselines/08_medimageinsight_baseline.yaml
+proposed:
+- proposed/09_ce_hyperkg_ret_proposed_v6_all_seeds.yaml
+ablations:
+- ablations/v1_ce_hyperkg_ret_ablation.yaml
+- ablations/v2_ce_hyperkg_ret_ablation.yaml
+- ablations/v3_ce_hyperkg_ret_ablation.yaml
+- ablations/v4_ce_hyperkg_ret_ablation.yaml
+- ablations/v5_ce_hyperkg_ret_ablation.yaml
+- ablations/v6_ce_hyperkg_ret_ablation.yaml
+evaluation:
+- evaluation/evaluation_protocol.yaml
+runtime:
+- runtime/runtime_environment.yaml
+required_environment_variables:
+  DATA_ROOT: Path to ROCOv2 dataset root
+optional_environment_variables:
+  OUTPUT_ROOT: Root folder for generated results
+  OUTPUT_DIR: Override output folder for one run
+  MODEL_CACHE_DIR: Model cache directory
+run_examples:
+  baseline: python -m src.train_baseline --config configs/baselines/01_resnet50_baseline.yaml
+  all_baselines: python -m src.run_all_baselines --config-dir configs/baselines --output results/all_baselines_metrics.csv
+  proposed_v6: python -m src.train_proposed --config configs/proposed/09_ce_hyperkg_ret_proposed_v6_all_seeds.yaml

@@ -1,0 +1,235 @@
+ablation_variants:
+  V1: &id001
+  - visual
+  V2:
+  - visual
+  - cui_prediction_head
+  V3:
+  - visual
+  - cui_prediction_head
+  - pairwise_graph_reranking
+  V4:
+  - visual
+  - cui_prediction_head
+  - hypergraph_reranking
+  V5:
+  - visual
+  - cui_prediction_head
+  - hypergraph_reranking
+  - counterfactual_hard_negatives
+  V6:
+  - visual
+  - cui_prediction_head
+  - hypergraph_reranking
+  - counterfactual_hard_negatives
+  - uncertainty_aware_fusion
+dataset:
+  caption_files:
+    test: test_captions.csv
+    train: train_captions.csv
+    valid: valid_captions.csv
+  concept_files:
+    test: test_concepts.csv
+    train: train_concepts.csv
+    valid: valid_concepts.csv
+  data_root: ${DATA_ROOT:../data/roco_v2}
+  expected_images:
+    test: 9972
+    total: 80080
+    train: 60163
+    valid: 9945
+  image_extensions:
+  - .jpg
+  - .jpeg
+  - .png
+  - .bmp
+  - .webp
+  - .tif
+  - .tiff
+  leakage_control:
+    hard_negative_pool_source: train_only
+    hypergraph_source: train_only
+    no_validation_or_test_ground_truth_cuis_during_ranking: true
+    pairwise_graph_source: train_only
+    split_before_vocabulary: true
+    test_ground_truth_cuis: used_only_after_final_ranked_lists_are_fixed_for_metric_computation
+    validation_ground_truth_cuis: used_only_after_validation_ranking_for_threshold_checkpoint_and_fusion_selection
+    vocabulary_source: train_only
+  manual_concept_files:
+    test: test_concepts_manual.csv
+    train: train_concepts_manual.csv
+    valid: valid_concepts_manual.csv
+  min_cui_freq: 5
+  name: ROCOv2
+  raw_unique_training_cuis: 1947
+  removed_low_frequency_cuis: 31
+  retained_vocabulary_size_M: 1916
+  splits:
+  - train
+  - valid
+  - test
+  test_oov_mention_rate: 0.17%
+  validation_oov_mention_rate: 0.20%
+evaluation:
+  bootstrap_resamples: 10000
+  curve_k_max: 50
+  disease_finding_only_evaluation: true
+  external_validation_datasets:
+  - ROCO
+  - MedICaT
+  frequency_weighted_evaluation: true
+  full_cui_evaluation: true
+  generic_filtered_evaluation: true
+  k_values:
+  - 5
+  - 10
+  - 50
+  mean_jaccard: average_cui_set_jaccard_over_top_k
+  metrics:
+  - CUI@K
+  - Precision@K
+  - Recall@K
+  - mAP@K
+  - MRR@K
+  - NDCG@K
+  - MeanJaccard@K
+  ndcg_gain: graded_cui_jaccard_overlap
+  primary_k: 5
+  query_split: test
+  relevance_rule: relevant_if_query_and_candidate_share_at_least_one_retained_CUI
+  retrieval_pool: test
+  same_split_self_exclude: true
+  test_ground_truth_cuis_used_only_after_ranking: true
+  top_explain: 10
+experiment:
+  name: ce_hyperkg_ret_v1_ablation_all_seeds
+  notebook: ../notebooks/09_ce_hyperkg_ret_proposed_all_seeds.ipynb
+  task: concept_enhanced_hypergraph_guided_medical_image_retrieval
+  variant: V1
+fusion_rule:
+  confidence_definition: u_q = max predicted CUI probability
+  locked_before_test: true
+  rules:
+  - alpha_visual: 0.7
+    beta_predicted_cui: 0.2
+    condition: u_q < 0.40
+    gamma_hypergraph: 0.1
+  - alpha_visual: 0.5
+    beta_predicted_cui: 0.3
+    condition: 0.40 <= u_q < 0.70
+    gamma_hypergraph: 0.2
+  - alpha_visual: 0.3
+    beta_predicted_cui: 0.35
+    condition: u_q >= 0.70
+    gamma_hypergraph: 0.35
+  selected_on: validation_split
+loss:
+  counterfactual_margin: 0.2
+  lambda_counterfactual: 0.1
+  lambda_cui_bce: 1.0
+  lambda_kg: 0.1
+losses:
+  lambda_counterfactual: 0.1
+  lambda_cui: 1.0
+  lambda_kg: 0.1
+  margin: 0.2
+  objective: L = Lretr + lambda1*LCUI + lambda2*LKG + lambda3*Lcf
+  pos_weight_max: 20.0
+model:
+  architecture_or_model_id: lion-ai/MedImageInsights
+  backbone: MedImageInsight
+  display_name: CE-HyperKG-Ret V6
+  dropout: 0.2
+  embedding_normalization: l2
+  encoder_mode: fine_tune
+  family: medimageinsight
+  hf_repo_id: lion-ai/MedImageInsights
+  image_size: 512
+  input_resolution:
+  - 512
+  - 512
+  projection_dim: 512
+  tag: ce_hyperkg_ret_v6
+  trainable_layers:
+  - MedImageInsight encoder
+  - projection head
+  - multi-label CUI head
+expected_final_v6_k5:
+  CUI@5: 0.9926 ± 0.0004
+  NDCG@5: 0.6020 ± 0.0040
+  Precision@5: 0.9765 ± 0.0007
+  mAP@5: 0.9718 ± 0.0010
+expected_summary:
+  Backbone: MedImageInsight
+  Batch size: 32
+  CUI threshold tau: 0.3
+  CUI vocabulary size M: 1916
+  Early stopping: Patience 5
+  Input resolution: 512 x 512
+  Learning rate: 1e-4
+  Margin m: 0.2
+  Maximum epochs: 25
+  Minimum CUI frequency: 5
+  Mixed precision: Enabled
+  Random seeds: 42, 123, 2025
+  Top-L predicted CUIs: 10
+  Top-N visual candidates: 200
+  Validation metric: Generic-filtered NDCG@5
+  Weight decay: 1e-4
+  lambda1: 1.0
+  lambda2: 0.1
+  lambda3: 0.1
+paths:
+  data_root: ${DATA_ROOT:../data/roco_v2}
+  model_cache_dir: ${MODEL_CACHE_DIR:../models/medimageinsight_model_cache}
+  output_dir: ${OUTPUT_DIR:../results/ce_hyperkg_ret_v1_roco_v2}
+  output_root: ${OUTPUT_ROOT:../results}
+retrieval:
+  candidate_cuis: predicted_from_image_only
+  cui_threshold: 0.3
+  fallback_when_no_cui_above_threshold: keep_highest_probability_cui
+  final_score: S = alpha_q*Sv + beta_q*Sp + gamma_q*Sh
+  hypergraph_expansion: train_built_hypergraph_only
+  initial_retrieval: cosine_similarity_over_visual_embeddings
+  predicted_cui_threshold_tau: 0.3
+  query_cuis: predicted_from_image_only
+  top_l_predicted_cuis: 10
+  top_n_visual_candidates: 200
+  use_counterfactual_negatives: false
+  use_cui_prediction_for_ranking: false
+  use_hypergraph: false
+  use_pairwise_graph: false
+  use_uncertainty_fusion: false
+  use_visual_similarity: true
+semantic_structure:
+  hyperedges: 59955
+  hypergraph_nodes: 1916
+  max_cuis_in_one_hyperedge: 20
+  mean_cuis_per_hyperedge: 3.35
+  pairwise_graph_edges: 63728
+  pairwise_graph_nodes: 1916
+  source: train_split_only
+statistics:
+  bootstrap_resamples: 10000
+  confidence_interval: 0.95
+  paired_query_level_bootstrap: true
+  random_seeds_reported_as: mean ± standard deviation
+training:
+  batch_size: 32
+  early_stopping_patience: 5
+  grad_clip: 1.0
+  learning_rate: 0.0001
+  maximum_epochs: 25
+  mixed_precision: true
+  num_workers: 0
+  optimizer: AdamW
+  random_seeds:
+  - 42
+  - 123
+  - 2025
+  validation_metric: Generic-filtered NDCG@5
+  weight_decay: 0.0001
+ablation_definition:
+  variant: V1
+  added_component: Image-only foundation retrieval
+  controlled_components: *id001

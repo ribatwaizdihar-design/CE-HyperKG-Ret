@@ -1,0 +1,231 @@
+experiment:
+  name: ce_hyperkg_ret_proposed_v6_all_seeds
+  variant: V6
+  notebook: ../notebooks/09_ce_hyperkg_ret_proposed_all_seeds.ipynb
+  task: concept_enhanced_hypergraph_guided_medical_image_retrieval
+paths:
+  data_root: ${DATA_ROOT:../data/roco_v2}
+  output_root: ${OUTPUT_ROOT:../results}
+  output_dir: ${OUTPUT_DIR:../results/ce_hyperkg_ret_v6_roco_v2}
+  model_cache_dir: ${MODEL_CACHE_DIR:../models/medimageinsight_model_cache}
+dataset:
+  name: ROCOv2
+  data_root: ${DATA_ROOT:../data/roco_v2}
+  splits:
+  - train
+  - valid
+  - test
+  expected_images:
+    train: 60163
+    valid: 9945
+    test: 9972
+    total: 80080
+  caption_files:
+    train: train_captions.csv
+    valid: valid_captions.csv
+    test: test_captions.csv
+  concept_files:
+    train: train_concepts.csv
+    valid: valid_concepts.csv
+    test: test_concepts.csv
+  manual_concept_files:
+    train: train_concepts_manual.csv
+    valid: valid_concepts_manual.csv
+    test: test_concepts_manual.csv
+  image_extensions:
+  - .jpg
+  - .jpeg
+  - .png
+  - .bmp
+  - .webp
+  - .tif
+  - .tiff
+  leakage_control:
+    split_before_vocabulary: true
+    vocabulary_source: train_only
+    pairwise_graph_source: train_only
+    hypergraph_source: train_only
+    hard_negative_pool_source: train_only
+    validation_ground_truth_cuis: used_only_after_validation_ranking_for_threshold_checkpoint_and_fusion_selection
+    test_ground_truth_cuis: used_only_after_final_ranked_lists_are_fixed_for_metric_computation
+    no_validation_or_test_ground_truth_cuis_during_ranking: true
+  min_cui_freq: 5
+  raw_unique_training_cuis: 1947
+  retained_vocabulary_size_M: 1916
+  removed_low_frequency_cuis: 31
+  validation_oov_mention_rate: 0.20%
+  test_oov_mention_rate: 0.17%
+model:
+  tag: ce_hyperkg_ret_v6
+  display_name: CE-HyperKG-Ret V6
+  family: medimageinsight
+  backbone: MedImageInsight
+  architecture_or_model_id: lion-ai/MedImageInsights
+  hf_repo_id: lion-ai/MedImageInsights
+  input_resolution:
+  - 512
+  - 512
+  image_size: 512
+  encoder_mode: fine_tune
+  trainable_layers:
+  - MedImageInsight encoder
+  - projection head
+  - multi-label CUI head
+  projection_dim: 512
+  dropout: 0.2
+  embedding_normalization: l2
+training:
+  random_seeds:
+  - 42
+  - 123
+  - 2025
+  optimizer: AdamW
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  batch_size: 32
+  maximum_epochs: 25
+  early_stopping_patience: 5
+  validation_metric: Generic-filtered NDCG@5
+  mixed_precision: true
+  num_workers: 0
+  grad_clip: 1.0
+losses:
+  lambda_cui: 1.0
+  lambda_kg: 0.1
+  lambda_counterfactual: 0.1
+  margin: 0.2
+  pos_weight_max: 20.0
+  objective: L = Lretr + lambda1*LCUI + lambda2*LKG + lambda3*Lcf
+loss:
+  lambda_cui_bce: 1.0
+  lambda_kg: 0.1
+  lambda_counterfactual: 0.1
+  counterfactual_margin: 0.2
+semantic_structure:
+  pairwise_graph_nodes: 1916
+  pairwise_graph_edges: 63728
+  hypergraph_nodes: 1916
+  hyperedges: 59955
+  mean_cuis_per_hyperedge: 3.35
+  max_cuis_in_one_hyperedge: 20
+  source: train_split_only
+retrieval:
+  use_visual_similarity: true
+  use_cui_prediction_for_ranking: true
+  use_pairwise_graph: false
+  use_hypergraph: true
+  use_counterfactual_negatives: true
+  use_uncertainty_fusion: true
+  initial_retrieval: cosine_similarity_over_visual_embeddings
+  top_n_visual_candidates: 200
+  cui_threshold: 0.3
+  predicted_cui_threshold_tau: 0.3
+  top_l_predicted_cuis: 10
+  fallback_when_no_cui_above_threshold: keep_highest_probability_cui
+  query_cuis: predicted_from_image_only
+  candidate_cuis: predicted_from_image_only
+  hypergraph_expansion: train_built_hypergraph_only
+  final_score: S = alpha_q*Sv + beta_q*Sp + gamma_q*Sh
+fusion_rule:
+  confidence_definition: u_q = max predicted CUI probability
+  selected_on: validation_split
+  locked_before_test: true
+  rules:
+  - condition: u_q < 0.40
+    alpha_visual: 0.7
+    beta_predicted_cui: 0.2
+    gamma_hypergraph: 0.1
+  - condition: 0.40 <= u_q < 0.70
+    alpha_visual: 0.5
+    beta_predicted_cui: 0.3
+    gamma_hypergraph: 0.2
+  - condition: u_q >= 0.70
+    alpha_visual: 0.3
+    beta_predicted_cui: 0.35
+    gamma_hypergraph: 0.35
+evaluation:
+  query_split: test
+  retrieval_pool: test
+  same_split_self_exclude: true
+  k_values:
+  - 5
+  - 10
+  - 50
+  primary_k: 5
+  curve_k_max: 50
+  metrics:
+  - CUI@K
+  - Precision@K
+  - Recall@K
+  - mAP@K
+  - MRR@K
+  - NDCG@K
+  - MeanJaccard@K
+  relevance_rule: relevant_if_query_and_candidate_share_at_least_one_retained_CUI
+  ndcg_gain: graded_cui_jaccard_overlap
+  mean_jaccard: average_cui_set_jaccard_over_top_k
+  full_cui_evaluation: true
+  generic_filtered_evaluation: true
+  frequency_weighted_evaluation: true
+  disease_finding_only_evaluation: true
+  test_ground_truth_cuis_used_only_after_ranking: true
+  top_explain: 10
+  bootstrap_resamples: 10000
+  external_validation_datasets:
+  - ROCO
+  - MedICaT
+statistics:
+  bootstrap_resamples: 10000
+  paired_query_level_bootstrap: true
+  confidence_interval: 0.95
+  random_seeds_reported_as: mean ± standard deviation
+ablation_variants:
+  V1:
+  - visual
+  V2:
+  - visual
+  - cui_prediction_head
+  V3:
+  - visual
+  - cui_prediction_head
+  - pairwise_graph_reranking
+  V4:
+  - visual
+  - cui_prediction_head
+  - hypergraph_reranking
+  V5:
+  - visual
+  - cui_prediction_head
+  - hypergraph_reranking
+  - counterfactual_hard_negatives
+  V6:
+  - visual
+  - cui_prediction_head
+  - hypergraph_reranking
+  - counterfactual_hard_negatives
+  - uncertainty_aware_fusion
+expected_summary:
+  Backbone: MedImageInsight
+  Input resolution: 512 x 512
+  Minimum CUI frequency: 5
+  CUI vocabulary size M: 1916
+  Top-N visual candidates: 200
+  Top-L predicted CUIs: 10
+  CUI threshold tau: 0.3
+  lambda1: 1.0
+  lambda2: 0.1
+  lambda3: 0.1
+  Margin m: 0.2
+  Learning rate: 1e-4
+  Weight decay: 1e-4
+  Batch size: 32
+  Maximum epochs: 25
+  Early stopping: Patience 5
+  Validation metric: Generic-filtered NDCG@5
+  Mixed precision: Enabled
+  Random seeds: 42, 123, 2025
+expected_final_v6_k5:
+  CUI@5: 0.9926 ± 0.0004
+  Precision@5: 0.9765 ± 0.0007
+  mAP@5: 0.9718 ± 0.0010
+  NDCG@5: 0.6020 ± 0.0040
