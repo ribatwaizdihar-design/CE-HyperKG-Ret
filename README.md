@@ -16,7 +16,6 @@ CE-HyperKG-Ret/
 │   └── runtime/
 ├── notebooks/
 ├── src/
-├── results/
 ├── data/
 ├── README.md
 ├── requirements.txt
@@ -187,22 +186,7 @@ The `notebooks/` folder contains:
 09_ce_hyperkg_ret_proposed_all_seeds.ipynb
 ```
 
-## Results
 
-Final results should be saved under:
-
-```text
-results/
-```
-
-Suggested files:
-
-```text
-results/baseline_results.csv
-results/proposed_results.csv
-results/ablation_results.csv
-results/bootstrap_confidence_intervals.csv
-```
 
 ## Reproducibility
 
